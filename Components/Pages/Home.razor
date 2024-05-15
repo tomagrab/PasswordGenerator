@@ -1,0 +1,108 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject ILogger<Home> Logger
+
+<PageTitle>Password Generator</PageTitle>
+
+<div class="flex flex-col items-center gap-4">
+    <h1>Password Generator</h1>
+
+    <button
+        @onclick="@GeneratePassword"
+        class="btn btn-base btn-primary"
+    >
+        Generate
+    </button>
+
+    @if (!string.IsNullOrEmpty(securePassword))
+    {
+        <div class="flex flex-col items-start gap-2 border p-4 rounded-md bg-darkblue">
+            <p>Password: @securePassword</p>
+            <p>Phonetic Interpretation: @phoneticInterpretation</p>
+            <button
+                @onclick="@CopyToClipboard"
+                class="btn btn-base btn-secondary self-center">
+                Copy
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private string securePassword = string.Empty;
+    private string phoneticInterpretation = string.Empty;
+    private static readonly Random random = new();
+    private IJSObjectReference? copyToClipboardJs;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        copyToClipboardJs = await JS.InvokeAsync<IJSObjectReference>("import", "./Components/Pages/Home.razor.js");
+    }
+    private void GeneratePassword()
+    {
+        securePassword = GenerateRandomPassword(6);
+        phoneticInterpretation = GetPhoneticInterpretation(securePassword);
+    }
+
+    private string GenerateRandomPassword(int length)
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        return new string(Enumerable.Repeat(chars, length)
+            .Select(s => s[random.Next(s.Length)]).ToArray());
+    }
+
+    private string GetPhoneticInterpretation(string password)
+    {
+        var phoneticMap = new Dictionary<char, string>
+        {
+            {'A', "Alpha"},
+            {'B', "Bravo"},
+            {'C', "Charlie"},
+            {'D', "Delta"},
+            {'E', "Echo"},
+            {'F', "Foxtrot"},
+            {'G', "Golf"},
+            {'H', "Hotel"},
+            {'I', "India"},
+            {'J', "Juliett"},
+            {'K', "Kilo"},
+            {'L', "Lima"},
+            {'M', "Mike"},
+            {'N', "November"},
+            {'O', "Oscar"},
+            {'P', "Papa"},
+            {'Q', "Quebec"},
+            {'R', "Romeo"},
+            {'S', "Sierra"},
+            {'T', "Tango"},
+            {'U', "Uniform"},
+            {'V', "Victor"},
+            {'W', "Whiskey"},
+            {'X', "X-ray"},
+            {'Y', "Yankee"},
+            {'Z', "Zulu"},
+            {'0', "Zero"},
+            {'1', "One"},
+            {'2', "Two"},
+            {'3', "Three"},
+            {'4', "Four"},
+            {'5', "Five"},
+            {'6', "Six"},
+            {'7', "Seven"},
+            {'8', "Eight"},
+            {'9', "Nine"}
+        };
+
+        var interpretation = password.Select(c => phoneticMap.ContainsKey(c) ? phoneticMap[c] : c.ToString());
+        return string.Join(" ", interpretation);
+    }
+
+    private async Task CopyToClipboard()
+    {
+        var textToCopy = $"Password: {securePassword}\nPhonetic Interpretation: {phoneticInterpretation}";
+
+
+        await copyToClipboardJs!.InvokeVoidAsync("copyToClipboard", textToCopy);
+    }
+}
+
